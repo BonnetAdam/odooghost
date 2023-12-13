@@ -6,6 +6,10 @@ export const QUERY_STACK = gql`
       name
       state
       networkMode
+      odooVersion
+      dbVersion
+      servicesCount
+      containers
     }
   }
 `

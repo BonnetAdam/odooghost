@@ -292,7 +292,19 @@ class Container:
     @property
     def is_paused(self) -> bool:
         return self.get("State.Paused")
+    
+    @property
+    def create_date(self) -> str:
+        return self.get("Created")
+    
+    @property
+    def started_at(self) -> str:
+        return self.get('State.StartedAt')
 
+    @property
+    def test(self) -> str:
+        return self.attrs
+    
     def __repr__(self) -> str:
         return f"<Container: {self.name} ({self.id})>"
 

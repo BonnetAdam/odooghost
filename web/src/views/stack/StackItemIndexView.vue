@@ -1,12 +1,15 @@
 <script setup>
 import { stackStates } from '@/constant'
+import { DocumentDuplicateIcon } from '@heroicons/vue/20/solid';
 import { ArrowPathIcon, PlayIcon, StopIcon } from '@heroicons/vue/24/outline'
 import { ArrowDownTrayIcon } from '@heroicons/vue/24/solid'
 import { inject } from 'vue'
 
 const statuses = {
-  Completed: 'text-green-400 bg-green-400/10',
-  Error: 'text-rose-400 bg-rose-400/10'
+  is_running: 'text-green-400 bg-green-400/10',
+  is_paused: 'text-rose-400 bg-rose-400/10',
+  is_restarting: 'text-orange-400 bg-orange-400/10',
+  is_other: 'text-red-400 bg-red-400/10',
 }
 const activityItems = [
   {
@@ -116,6 +119,33 @@ const activityItems = [
 ]
 
 const stack = inject('stack')
+
+const status = 'is_running'
+
+const getStatus = (container) => {
+  let key = Object.keys(container).find(key => container[key] === true)
+  return key ? key : 'is_other'
+}
+
+const getDate = (date) => {
+  return new Date(date).toLocaleDateString('fr-CH', {month: 'numeric', day: 'numeric', year: 'numeric'})
+}
+
+function timeSince(date) {
+  var seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  var interval = seconds / 31536000;
+  if (interval > 1) {return Math.floor(interval) + " years";}
+  interval = seconds / 2592000;
+  if (interval > 1) {return Math.floor(interval) + " months";}
+  interval = seconds / 86400;
+  if (interval > 1) {return Math.floor(interval) + " days";}
+  interval = seconds / 3600;
+  if (interval > 1) {return Math.floor(interval) + " hours";}
+  interval = seconds / 60;
+  if (interval > 1) {return Math.floor(interval) + " minutes";}
+  return Math.floor(seconds) + " seconds";
+}
+
 </script>
 
 <template>
@@ -165,26 +195,27 @@ const stack = inject('stack')
     <section class="border-t border-white/10">
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-4">
         <div>
-          <dt class="truncate text-sm font-light text-neutral-400">Odoo version</dt>
-          <dd class="mt-1 text-lg tracking-tight text-white">2</dd>
+          <dt class="truncate text-sm font-light text-neutral-400">Odoo Version</dt>
+          <dd class="mt-1 text-lg tracking-tight text-white">{{ stack.odooVersion }}</dd>
         </div>
         <div>
           <dt class="truncate text-sm font-light text-neutral-400">Postgres Version</dt>
-          <dd class="mt-1 text-lg tracking-tight text-white">3</dd>
+          <dd class="mt-1 text-lg tracking-tight text-white">{{ stack.dbVersion }}</dd>
         </div>
         <div>
-          <dt class="truncate text-sm font-light text-neutral-400">Sercices</dt>
-          <dd class="mt-1 text-lg tracking-tight text-white">3</dd>
+          <dt class="truncate text-sm font-light text-neutral-400">Services</dt>
+          <dd class="mt-1 text-lg tracking-tight text-white">{{ stack.servicesCount }}</dd>
         </div>
         <div>
           <dt class="truncate text-sm font-light text-neutral-400">Containers</dt>
-          <dd class="mt-1 text-lg tracking-tight text-white">3</dd>
+          <dd class="mt-1 text-lg tracking-tight text-white">{{ stack.containers.length }}</dd>
         </div>
       </div>
     </section>
 
     <section>
-      <h3>Containers</h3>
+      <!-- <h3>Containers {{ stack.containers }}</h3> -->
+      <!-- <h3>Containers {{ stack.services }}</h3> -->
       <table class="mt-6 w-full whitespace-nowrap text-left -ml-4 sm:-ml-6 lg:-ml-8">
         <colgroup>
           <col class="w-full sm:w-4/12" />
@@ -195,8 +226,9 @@ const stack = inject('stack')
         </colgroup>
         <thead class="border-b border-white/10 text-sm leading-6 text-white">
           <tr>
-            <th scope="col" class="py-2 pl-4 pr-8 font-semibold sm:pl-6 lg:pl-8">User</th>
-            <th scope="col" class="hidden py-2 pl-0 pr-8 font-semibold sm:table-cell">Commit</th>
+            <th scope="col" class="hidden py-2 pl-0 pr-8 font-semibold sm:table-cell">
+              Container
+            </th>
             <th
               scope="col"
               class="py-2 pl-0 pr-4 text-right font-semibold sm:pr-8 sm:text-left lg:pr-20"
@@ -215,6 +247,38 @@ const stack = inject('stack')
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
+          <tr v-for="item in stack.containers" :key="item.id">
+            <td class="hidden py-4 pl-0 pr-8 sm:table-cell sm:pr-8">
+              <div class="flex gap-x-3">
+                <div class="font-mono text-sm leading-6 text-gray-400">{{ item.service }}</div>
+                <div
+                  class="rounded-md bg-gray-700/40 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-white/10"
+                >
+                  {{ item.name }}
+                </div>
+              </div>
+            </td>
+            <td class="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+              <div class="flex items-center justify-end gap-x-2 sm:justify-start">
+                <div :class="[statuses[getStatus(item)], 'flex-none rounded-full p-1']">
+                  <div class="h-1.5 w-1.5 rounded-full bg-current" />
+                </div>
+                <div class="hidden text-white sm:block">{{ item.status }}</div>
+              </div>
+            </td>
+            <td
+              class="hidden py-4 pl-0 pr-8 text-sm leading-6 text-gray-400 md:table-cell lg:pr-20"
+            >
+              <time :datetime="item.started_at ">{{ timeSince(item.started_at) }}</time>
+            </td>
+            <td
+              class="hidden py-4 pl-0 pr-4 text-right text-sm leading-6 text-gray-400 sm:table-cell sm:pr-6 lg:pr-8"
+            >
+              <time :datetime="item.create_date">{{ getDate(item.create_date) }}</time>
+            </td>
+          </tr>
+        </tbody>
+        <!-- <tbody class="divide-y divide-white/5">
           <tr v-for="item in activityItems" :key="item.commit">
             <td class="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
               <div class="flex items-center gap-x-4">
@@ -256,7 +320,7 @@ const stack = inject('stack')
               <time :datetime="item.dateTime">{{ item.date }}</time>
             </td>
           </tr>
-        </tbody>
+        </tbody> -->
       </table>
     </section>
   </div>

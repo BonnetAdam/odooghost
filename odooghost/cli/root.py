@@ -60,11 +60,17 @@ def drop() -> None:
 
 
 @cli.command()
-def web() -> None:
+def web(
+    dev: bool = typer.Option(
+        False,
+        help="Run OdooGhost webserver in development mode",
+        show_default=False,
+    )
+    ) -> None:
     """
     Run OdooGhost webserver
     """
-    uvicorn.run("odooghost.web.application:create_app", factory=True)
+    uvicorn.run("odooghost.web.application:create_app", factory=True, reload=dev)
 
 
 @cli.callback()
